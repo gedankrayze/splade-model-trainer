@@ -54,7 +54,7 @@ jobs:
           python -c "import src; print('Import successful')"
 
       - name: Cache test data
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             tests/data
