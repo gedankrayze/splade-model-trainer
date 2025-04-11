@@ -1,4 +1,4 @@
-# Gedank Rayze SPLADE Model Trainer
+# Gedank Rayze SPLADE Model Trainer Documentation
 
 A comprehensive toolkit for training, evaluating, and deploying SPLADE (SParse Lexical AnD Expansion) models for
 efficient information retrieval. This project provides a complete pipeline for building high-performance sparse
@@ -13,33 +13,56 @@ matching while also handling term expansion, making it powerful for search appli
 This toolkit provides:
 
 - Training infrastructure for fine-tuning SPLADE models on domain-specific data
+- Domain-specific training data generation using LLMs
 - Evaluation tools for measuring retrieval performance
 - Inference utilities for encoding queries and documents
 - Support for hybrid search combining dense and sparse embeddings
 
+## Documentation Index
+
+- [Unified Trainer](unified_trainer.md) - Documentation for the unified trainer interface
+- [Best Practices](best_practices.md) - Best practices for training and using SPLADE models
+- [Domain Distiller](domain_distiller.md) - Guide to generating domain-specific training data
+- [Contrastive Generation](contrastive_generation.md) - Information about contrastive pair generation
+- [CI/CD](ci-cd/github-actions.md) - Information about our CI/CD setup and GitHub Actions workflows
+
 ## Key Features
 
 - **Fine-tuning**: Train SPLADE models on custom datasets
+- **Domain Distiller**: Generate domain-specific training data from scratch using LLMs
+- **Contrastive Learning**: Create high-quality training data using contrastive pair generation
+- **Multi-Language Support**: Generate training data in multiple languages
 - **Evaluation**: Measure performance using standard IR metrics (MRR, P@k, NDCG)
 - **Inference**: Encode queries and documents for retrieval
-- **Data generation**: Create training data from document collections
 - **Hardware optimization**: Support for CUDA, MPS (Apple Silicon), and CPU
 
 ## Use Cases
 
-### 1. Domain-Specific Search
+### 1. Zero-Shot Domain-Specific Search
 
-Fine-tune a SPLADE model on your technical documentation to create a specialized search engine:
+Create a domain-specific search engine without pre-existing training data:
+
+```bash
+# Generate domain-specific training data using Domain Distiller
+python -m src.domain_distiller.cli pipeline --domain legal --language en --queries 100 --contrastive
+
+# Train the model
+python train_splade_unified.py --train-file ./distilled_data/legal_en_splade.json --output-dir ./fine_tuned_splade
+```
+
+### 2. Custom Training Data Generation
+
+Generate training data from your own documentation:
 
 ```bash
 # Generate training data from documentation
-python generate_training_data.py --input-dir ./docs --output-file training_data.json
+python -m src.generate_training_data.py --input-dir ./docs --output-file training_data.json
 
-# Train the model
-python train_splade.py --train-file training_data.json --output-dir ./fine_tuned_splade
+# OR use Domain Distiller with your domain knowledge
+python -m src.domain_distiller.cli bootstrap --domain technical --language en --concepts 100
 ```
 
-### 2. Interactive Search
+### 3. Interactive Search
 
 Create an interactive search interface for your document collection:
 
@@ -48,7 +71,7 @@ Create an interactive search interface for your document collection:
 python test_queries.py --model-dir ./fine_tuned_splade --docs-file documents.json
 ```
 
-### 3. Evaluation and Benchmarking
+### 4. Evaluation and Benchmarking
 
 Evaluate model performance on your test dataset:
 
@@ -77,6 +100,33 @@ trainer = SpladeTrainer(
 
 # Train model
 trainer.train()
+```
+
+### Generating Domain-Specific Training Data
+
+```python
+from src.domain_distiller.bootstrapper import bootstrap_domain
+from src.domain_distiller.query_generator import generate_queries
+from src.domain_distiller.document_generator import generate_documents
+
+# Bootstrap domain knowledge
+domain_data = bootstrap_domain(
+    domain="medical",
+    language="en",
+    num_concepts=50
+)
+
+# Generate queries
+queries = generate_queries(
+    domain_file="medical_en_domain.json",
+    count=100
+)
+
+# Generate documents with contrastive pairs
+dataset = generate_documents(
+    queries_file="medical_en_queries.json",
+    contrastive=True
+)
 ```
 
 ### Encoding Documents with SPLADE
@@ -115,7 +165,7 @@ for result in results:
 
 ## Installation and Requirements
 
-The project requires Python 3.7+ and the following dependencies:
+The project requires Python 3.8+ and the following dependencies:
 
 ```
 torch
@@ -123,13 +173,15 @@ transformers
 numpy
 tqdm
 pydantic
+aiohttp
+tenacity
 openai (optional, for data generation)
 ```
 
 To install dependencies:
 
 ```bash
-pip install torch transformers numpy tqdm pydantic openai
+pip install -r requirements.txt
 ```
 
 ## Hardware Support
@@ -139,110 +191,3 @@ The toolkit automatically detects and utilizes available hardware acceleration:
 - CUDA for NVIDIA GPUs
 - MPS for Apple Silicon
 - Falls back to CPU when neither is available
-
-# SPLADE Model Trainer: Best Practices
-
-This document outlines optimized approaches and best practices to maximize the efficiency and effectiveness of your
-SPLADE model training and deployment workflow.
-
-## Data Preparation
-
-### Document Collection
-
-- **Optimal chunking**: Keep chunks between 500-2000 characters. Too small = insufficient context; too large = diluted
-  relevance signals
-- **Content overlap**: Include 10-20% overlap between chunks to avoid splitting key information
-- **Pre-processing**: Apply consistent normalization (lowercase, punctuation removal, etc.) to both training data and
-  inference queries
-- **Balance**: Ensure your training data has diverse document types representing your actual retrieval corpus
-
-### Training Data Generation
-
-- **Query diversity**: Generate a variety of query types (questions, keywords, natural language) that reflect real user
-  behavior
-- **Hard negatives**: Include semantically similar but incorrect documents as negative examples
-- **Validation split**: Maintain a 80/20 or 90/10 train/validation split with minimal content overlap
-- **Quality over quantity**: 1,000 high-quality examples often outperform 10,000 poor ones
-
-## Model Training
-
-### Hyperparameter Optimization
-
-- **Regularization coefficients**: Start with low values (`lambda_d` = `lambda_q` = 0.0001) and adjust based on
-  validation loss
-- **Learning rate**: 2e-5 to 5e-5 typically works well for fine-tuning
-- **Batch size**: Use the largest that fits in memory (typically 8-32) for more stable gradients
-- **Epochs**: 3-5 epochs are usually sufficient; use early stopping based on validation loss
-
-### Computational Efficiency
-
-- **Mixed precision training**: Enable FP16 training to reduce memory usage and increase throughput
-- **Gradient accumulation**: If hardware-limited, accumulate gradients over multiple batches
-- **Progressive batch size**: Start with a smaller batch size and increase as training progresses
-- **Checkpoint selectively**: Save checkpoints based on validation metrics rather than at fixed intervals
-
-## Evaluation and Tuning
-
-### Metrics to Prioritize
-
-- **Recall@k**: Measures ability to retrieve relevant documents in top-k results
-- **NDCG@10**: Evaluates ranking quality for top results
-- **MRR**: Mean Reciprocal Rank indicates average position of first relevant result
-- **Query latency**: Critical for production systems; target under 100ms per query
-
-### Iterative Improvement
-
-- **Error analysis**: Manually review cases where the model performs poorly
-- **Data augmentation**: Add examples targeting model weaknesses
-- **Query reformulation**: Add training data with different phrasings for the same information need
-
-## Deployment Considerations
-
-### Efficiency Optimizations
-
-- **Quantization**: Quantize model weights to INT8 for faster inference with minimal quality loss
-- **Vocabulary pruning**: Remove unused vocabulary tokens to reduce model size
-- **Batch processing**: Process queries in batches when possible
-- **Document pre-encoding**: Pre-compute and store document vectors for lookup at query time
-
-### Scaling
-
-- **Indexing strategy**: Use inverted indices for efficient retrieval with sparse representations
-- **Hybrid retrieval**: Combine SPLADE (recall) with a cross-encoder reranker (precision) for best results
-- **Distributed inference**: Shard document index across multiple servers for handling large collections
-
-## Integration Tips
-
-### Pre and Post Processing
-
-- **Query expansion**: Apply simple rule-based expansion for common abbreviations or synonyms
-- **Document segmentation**: Consider semantic segmentation rather than fixed-length chunks
-- **Filtering**: Apply metadata filters before semantic search to reduce candidate pool
-
-### Monitoring and Maintenance
-
-- **A/B testing**: Compare model versions on a subset of traffic before full deployment
-- **Relevance feedback**: Collect user feedback to identify areas for improvement
-- **Periodic retraining**: Fine-tune on new data every 3-6 months to capture distribution shifts
-
-## Hardware-Specific Optimizations
-
-### GPU Acceleration
-
-- **CUDA optimizations**: Enable CUDA graph optimization for repeated operations
-- **Batch size tuning**: Find optimal batch size for your specific GPU model
-- **Memory management**: Monitor GPU memory usage and adjust max_length accordingly
-
-### Apple Silicon (MPS)
-
-- **M-series optimization**: When using MPS backend, smaller batch sizes (4-8) often perform better
-- **Mixed precision**: Use float16 precision for significant speedups on Apple Silicon
-
-### CPU Deployment
-
-- **Thread optimization**: Set appropriate OMP_NUM_THREADS and MKL_NUM_THREADS environment variables
-- **Quantization**: Use INT8 quantization for up to 4x speedup with minimal quality loss
-- **Batch size**: Smaller batches (2-4) typically work better on CPU
-
-By following these best practices, you can significantly improve both the efficiency and effectiveness of your SPLADE
-model training and deployment pipeline.

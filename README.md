@@ -17,6 +17,30 @@ matching while also handling term expansion, making it powerful for search appli
 - `articles/` - Articles and blog posts about SPLADE and usage of this toolkit
 - `fine_tuned_*/` - Output directories for trained models (not included in version control)
 
+## New Features
+
+### Domain Distiller
+
+The new Domain Distiller tool allows you to generate domain-specific training data for SPLADE models from scratch using LLMs. Key features include:
+
+- **Zero-Shot Training Data Generation**: Create training data for any domain without pre-existing datasets
+- **Domain Bootstrapping**: Automatically generate domain knowledge, terminology, and concepts
+- **Contrastive Pair Generation**: Create high-quality negative examples using advanced contrastive strategies
+- **Multi-Language Support**: Generate data in English, German, Spanish, French, and more
+- **OpenAI-Compatible API Support**: Works with OpenAI, Anthropic, or any compatible API endpoint
+
+Quick start with Domain Distiller:
+
+```bash
+# Generate domain-specific training data
+python -m src.domain_distiller.cli pipeline --domain legal --language en --queries 100 --contrastive
+
+# Train a SPLADE model with the generated data
+python train_splade_unified.py --train-file ./distilled_data/legal_en_splade.json --output-dir ./fine_tuned_splade
+```
+
+See [docs/domain_distiller.md](docs/domain_distiller.md) for detailed documentation and [docs/contrastive_generation.md](docs/contrastive_generation.md) for information about contrastive pair generation.
+
 ## Quick Start
 
 ### Installation
@@ -54,6 +78,8 @@ For best practices on training and using SPLADE models, see [docs/best_practices
 For the unified trainer documentation, see [docs/unified_trainer.md](docs/unified_trainer.md).
 
 For information about our CI/CD setup and GitHub Actions workflows, see [docs/ci-cd/github-actions.md](docs/ci-cd/github-actions.md).
+
+For details on the Domain Distiller tool, see [docs/domain_distiller.md](docs/domain_distiller.md).
 
 ## License
 
