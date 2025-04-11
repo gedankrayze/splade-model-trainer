@@ -1,4 +1,4 @@
-# SPLADE Model Trainer: Best Practices
+# Gedank Rayze SPLADE Model Trainer: Best Practices
 
 This document outlines optimized approaches and best practices to maximize the efficiency and effectiveness of your
 SPLADE model training and deployment workflow.

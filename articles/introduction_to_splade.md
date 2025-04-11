@@ -1,6 +1,6 @@
 # Introduction to SPLADE: Sparse Lexical and Expansion Models for Information Retrieval
 
-**Author:** SPLADE Team  
+**Author:** Gedank Rayze  
 **Date:** 2025-04-11
 
 ## Introduction

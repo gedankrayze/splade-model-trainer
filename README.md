@@ -1,4 +1,4 @@
-# SPLADE Model Trainer
+# Gedank Rayze SPLADE Model Trainer
 
 A comprehensive toolkit for training, evaluating, and deploying SPLADE (SParse Lexical AnD Expansion) models for
 efficient information retrieval.
@@ -46,3 +46,8 @@ For best practices on training and using SPLADE models, see [docs/best_practices
 ## License
 
 See the [LICENSE](LICENSE) file for more details.
+
+## Contact
+
+- GitHub: [https://github.com/gedankrayze/splade-model-trainer](https://github.com/gedankrayze/splade-model-trainer)
+- Email: info@gedankrayze.com

@@ -1,4 +1,4 @@
-# SPLADE Model Trainer Articles
+# Gedank Rayze SPLADE Model Trainer Articles
 
 This directory contains articles and blog posts about the SPLADE Model Trainer and its applications.
 

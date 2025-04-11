@@ -1,4 +1,4 @@
-# SPLADE Model Trainer Code Structure
+# Gedank Rayze SPLADE Model Trainer Code Structure
 
 This document provides an overview of the SPLADE Model Trainer code structure and organization.
 
