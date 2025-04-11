@@ -1,0 +1,240 @@
+version: 3
+
+# Load environment variables from .env files
+# Look for .env files in current directory, {{.ENV}}/.env, and {{.HOME}}/.env
+dotenv: ['.env', '{{.ENV}}/.env', '{{.HOME}}/.env']
+
+tasks:
+  # Creates a virtual environment for project dependencies isolation
+  # Usage: task venv
+  venv:
+    desc: Create a new Python virtual environment in .venv directory
+    cmds:
+      - cmd: |
+          python3 -m venv .venv
+
+  # Installs all required dependencies in the virtual environment
+  # Usage: task install
+  install:
+    desc: Install all required dependencies in the virtual environment
+    cmds:
+      # For macOS and Linux
+      - cmd: |
+          source .venv/bin/activate
+          pip install --upgrade pip
+          pip install -U -r requirements.txt
+        platforms: ["linux", "darwin"]
+      # For Windows
+      - cmd: |
+          python3 -m venv .venv
+          .venv\Scripts\activate
+          python -m pip install --upgrade pip
+          pip install -U -r requirements.txt
+        platforms: ["windows"]
+
+  # Generates training data from input documents 
+  # Usage: task generate input_dir=path/to/docs output_file=training.json val_file=validation.json val_ratio=0.2
+  generate:
+    desc: Generate training data from input documents with train/validation split
+    requires:
+      vars:
+        - input_dir
+        - output_file
+    vars:
+      val_file: '{{default "validation_data.json" .val_file}}'
+      val_ratio: '{{default "0.2" .val_ratio}}'
+    cmds:
+      - |
+        python -m src.generate_training_data \
+        --validation-file {{.val_file}} \
+        --val-ratio {{.val_ratio}} \
+        --input-dir {{.input_dir}} \
+        --output-file {{.output_file}}
+
+  # Trains a SPLADE model using the unified trainer (recommended)
+  # Usage: task train-unified train_file=data.json output_dir=./models val_file=val.json model_name=model/name
+  train-unified:
+    desc: Train SPLADE model using the unified trainer with all advanced features
+    requires:
+      vars:
+        - train_file
+        - output_dir
+    vars:
+      val_file: '{{default "" .val_file}}'
+      model_name: '{{default "prithivida/Splade_PP_en_v2" .model_name}}'
+      learning_rate: '{{default "5e-5" .learning_rate}}'
+      batch_size: '{{default "8" .batch_size}}'
+      epochs: '{{default "3" .epochs}}'
+      device: '{{default "" .device}}'
+      mixed_precision: '{{default "--mixed-precision" .mixed_precision}}'
+      early_stopping: '{{default "--early-stopping" .early_stopping}}'
+      save_best_only: '{{default "--save-best-only" .save_best_only}}'
+    env:
+      TOKENIZERS_PARALLELISM: false
+    cmds:
+      - |
+        mkdir -p {{.output_dir}}
+        
+        huggingface-cli login --token={{.HF_TOKEN}}
+        
+        python train_splade_unified.py \
+        --train-file {{.train_file}} \
+        {{if .val_file}}--val-file {{.val_file}}{{end}} \
+        --output-dir {{.output_dir}} \
+        --model-name {{.model_name}} \
+        --learning-rate {{.learning_rate}} \
+        --batch-size {{.batch_size}} \
+        --epochs {{.epochs}} \
+        {{if .device}}--device {{.device}}{{end}} \
+        {{.mixed_precision}} \
+        {{.early_stopping}} \
+        {{.save_best_only}}
+
+  # Trains a SPLADE model using the original implementation
+  # Usage: task train-splade train_file=data.json output_dir=./models val_file=val.json model_name=model/name
+  train-splade:
+    desc: Train SPLADE model using the original trainer implementation
+    requires:
+      vars:
+        - train_file
+        - output_dir
+    vars:
+      val_file: '{{default "" .val_file}}'
+      model_name: '{{default "prithivida/Splade_PP_en_v2" .model_name}}'
+      learning_rate: '{{default "5e-5" .learning_rate}}'
+      batch_size: '{{default "8" .batch_size}}'
+      epochs: '{{default "3" .epochs}}'
+      device: '{{default "cpu" .device}}'
+    env:
+      TOKENIZERS_PARALLELISM: false
+    cmds:
+      - |
+        mkdir -p {{.output_dir}}
+        
+        huggingface-cli login --token={{.HF_TOKEN}}
+        
+        python -m src.train_splade \
+        --device {{.device}} \
+        --train-file {{.train_file}} \
+        {{if .val_file}}--val-file {{.val_file}}{{end}} \
+        --output-dir {{.output_dir}} \
+        --model-name {{.model_name}} \
+        --learning-rate {{.learning_rate}} \
+        --batch-size {{.batch_size}} \
+        --epochs {{.epochs}}
+
+  # Trains a SPLADE model with mixed precision 
+  # Usage: task train-splade-mp train_file=data.json output_dir=./models val_file=val.json model_name=model/name
+  train-splade-mp:
+    desc: Train SPLADE model with mixed precision for better performance
+    requires:
+      vars:
+        - train_file
+        - output_dir
+    vars:
+      val_file: '{{default "" .val_file}}'
+      model_name: '{{default "prithivida/Splade_PP_en_v2" .model_name}}'
+      learning_rate: '{{default "5e-5" .learning_rate}}'
+      batch_size: '{{default "8" .batch_size}}'
+      epochs: '{{default "3" .epochs}}'
+      device: '{{default "" .device}}'
+    env:
+      TOKENIZERS_PARALLELISM: false
+    cmds:
+      - |
+        mkdir -p {{.output_dir}}
+        
+        huggingface-cli login --token={{.HF_TOKEN}}
+        
+        python -m src.train_splade_mixed_precision \
+        --train-file {{.train_file}} \
+        {{if .val_file}}--val-file {{.val_file}}{{end}} \
+        --output-dir {{.output_dir}} \
+        --model-name {{.model_name}} \
+        --learning-rate {{.learning_rate}} \
+        --batch-size {{.batch_size}} \
+        --epochs {{.epochs}} \
+        {{if .device}}--device {{.device}}{{end}} \
+        --mixed-precision
+
+  # Trains dense embeddings using the standard trainer
+  # Usage: task train-embeddings train_file=data.json output_dir=./models model_name=model/name
+  train-embeddings:
+    desc: Train dense embeddings model (not SPLADE) with standard trainer
+    requires:
+      vars:
+        - train_file
+        - output_dir
+    vars:
+      model_name: '{{default "intfloat/e5-base-v2" .model_name}}'
+      device: '{{default "cpu" .device}}'
+    cmds:
+      - cmd: |
+          mkdir -p {{.output_dir}}
+          
+          python -m src.train_embeddings \
+          --train-file {{.train_file}} \
+          --output-dir {{.output_dir}} \
+          --model-name {{.model_name}} \
+          --device {{.device}}
+
+  # Trains dense embeddings using low memory implementation
+  # Usage: task train-embeddings-lowmem train_file=data.json output_dir=./models model_name=model/name batch_size=2 max_length=256
+  train-embeddings-lowmem:
+    desc: Train dense embeddings model with low memory usage for resource-constrained environments
+    requires:
+      vars:
+        - train_file
+        - output_dir
+    vars:
+      model_name: '{{default "intfloat/e5-small-v2" .model_name}}'
+      batch_size: '{{default "2" .batch_size}}'
+      max_length: '{{default "256" .max_length}}'
+    cmds:
+      - cmd: |
+          mkdir -p {{.output_dir}}
+          
+          python -m src.train_embeddings_lowmem \
+          --train-file {{.train_file}} \
+          --output-dir {{.output_dir}} \
+          --batch-size {{.batch_size}} \
+          --max-length {{.max_length}} \
+          --model-name {{.model_name}}
+
+  # Evaluates a trained SPLADE model on test data
+  # Usage: task evaluate-splade model_dir=./models test_file=test.json
+  evaluate-splade:
+    desc: Evaluate SPLADE model performance on test data with metrics
+    requires:
+      vars:
+        - model_dir
+        - test_file
+    cmds:
+      - cmd: |
+          python -m src.evaluate_splade \
+          --model-dir {{.model_dir}} \
+          --test-file {{.test_file}}
+
+  # Tests a SPLADE model with interactive queries
+  # Usage: task test-splade-queries model_dir=./models docs_file=docs.json
+  test-splade-queries:
+    desc: Test SPLADE model with interactive queries against document collection
+    requires:
+      vars:
+        - model_dir
+        - docs_file
+    cmds:
+      - cmd: |
+          python -m tests.code.test_queries \
+          --model-dir {{.model_dir}} \
+          --docs-file {{.docs_file}}
+
+  # Runs all test suites to verify code integrity
+  # Usage: task test
+  test:
+    desc: Run all test suites to verify code integrity
+    cmds:
+      - cmd: |
+          python -m tests.code.test_error_handling
+          python -m tests.code.test_embedder
+          python -m tests.code.test_load_model

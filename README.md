@@ -25,10 +25,18 @@ matching while also handling term expansion, making it powerful for search appli
 pip install -r requirements.txt
 ```
 
-### Training a Model
+### Training a Model with the Unified Trainer (Recommended)
 
 ```bash
-python -m src.train_splade --train-file training_data.json --output-dir ./fine_tuned_splade
+python train_splade_unified.py --train-file training_data.json --output-dir ./fine_tuned_splade --mixed-precision
+```
+
+This unified trainer combines all advanced features in a single, cohesive interface. See [docs/unified_trainer.md](docs/unified_trainer.md) for details.
+
+### Alternative Training Methods
+
+```bash
+python -m src.train_splade_mixed_precision --train-file training_data.json --output-dir ./fine_tuned_splade --mixed-precision
 ```
 
 ### Interactive Search
@@ -42,6 +50,8 @@ python -m tests.code.test_queries --model-dir ./fine_tuned_splade --docs-file do
 For detailed documentation, see the [docs/README.md](docs/README.md) file.
 
 For best practices on training and using SPLADE models, see [docs/best_practices.md](docs/best_practices.md).
+
+For the unified trainer documentation, see [docs/unified_trainer.md](docs/unified_trainer.md).
 
 ## License
 
