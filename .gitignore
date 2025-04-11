@@ -2,5 +2,6 @@
 .venv/
 temp/
 fine_tune*
+logs/
 *.zip
 .env

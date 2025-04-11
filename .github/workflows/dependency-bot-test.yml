@@ -1,0 +1,82 @@
+name: Dependency Bot Test
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'requirements.txt'
+
+jobs:
+  dependency_bot_test:
+    # Run only if PR is from Dependabot or Renovate
+    if: ${{ github.actor == 'dependabot[bot]' || github.actor == 'renovate[bot]' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          # Install additional dev dependencies for testing if they exist
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
+      - name: Run tests
+        run: |
+          python -m unittest discover tests/code
+
+      - name: Run mini training test
+        run: |
+          # Run a minimal training job to verify core functionality
+          python tests/code/ci/test_mini_training.py
+
+      - name: Check for import errors
+        run: |
+          # Try to import the key modules to ensure they work with the new dependencies
+          python -c "
+          from src.embedder import EmbedderFactory;
+          from src.utils import setup_logging;
+          print('Basic imports successful')
+          "
+
+      - name: Test basic functionality
+        run: |
+          # Run a simple functionality test
+          python tests/code/test_error_handling.py --test basic
+
+      - name: Update PR with test results
+        if: success()
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ Dependency tests passed successfully with Python ${{ matrix.python-version }}. This PR can be safely merged.'
+            })
+
+      - name: Update PR with failure details
+        if: failure()
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '❌ Dependency tests failed with Python ${{ matrix.python-version }}. Please check the workflow logs for details.'
+            })

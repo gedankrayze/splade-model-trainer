@@ -53,6 +53,8 @@ For best practices on training and using SPLADE models, see [docs/best_practices
 
 For the unified trainer documentation, see [docs/unified_trainer.md](docs/unified_trainer.md).
 
+For information about our CI/CD setup and GitHub Actions workflows, see [docs/ci-cd/github-actions.md](docs/ci-cd/github-actions.md).
+
 ## License
 
 See the [LICENSE](LICENSE) file for more details.

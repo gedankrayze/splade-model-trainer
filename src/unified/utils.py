@@ -21,6 +21,26 @@ import torch.nn as nn
 from transformers import PreTrainedModel, PreTrainedTokenizer
 
 
+# --- Custom JSON Encoder for PyTorch Tensors ---
+
+class TensorJSONEncoder(json.JSONEncoder):
+    """
+    Custom JSON encoder that handles PyTorch Tensors.
+    
+    This encoder converts Tensors to Python lists or scalar values
+    that can be safely serialized to JSON.
+    """
+    def default(self, obj):
+        if isinstance(obj, torch.Tensor):
+            # Handle different tensor shapes
+            if obj.numel() == 1:  # Single value tensor
+                return obj.item()  # Convert to Python scalar
+            else:
+                return obj.tolist()  # Convert to Python list
+        # Let the parent class handle other types
+        return super().default(obj)
+
+
 # --- Validation Utilities ---
 
 def validate_dir_exists(path: str, create: bool = False) -> None:
@@ -172,14 +192,14 @@ class TrainingLogger:
         self.metrics["config"] = config
         
         # Log some important config details
-        self.info(f"Starting training with model: {config.get('model_name')}")
-        self.info(f"Training file: {config.get('train_file')}")
-        self.info(f"Validation file: {config.get('val_file')}")
-        self.info(f"Mixed precision: {config.get('mixed_precision', False)}")
+        self.info(f"Training started")
+        self.info(f"Training configuration: {json.dumps(config, indent=2, cls=TensorJSONEncoder)}")
         
     def log_epoch(self, epoch: int, metrics: Dict[str, float]) -> None:
         """Log metrics for an epoch."""
         self.metrics["epochs"][epoch] = metrics
+        self.info(f"Epoch {epoch} completed")
+        self.info(f"Metrics: {json.dumps(metrics, indent=2, cls=TensorJSONEncoder)}")
         
     def end_training(self, summary: Dict[str, Any]) -> None:
         """Log the end of training and store summary metrics."""
@@ -190,8 +210,7 @@ class TrainingLogger:
         
         self.info("Training completed")
         self.info(f"Total duration: {duration:.2f} seconds")
-        for key, value in summary.items():
-            self.info(f"{key}: {value}")
+        self.info(f"Summary: {json.dumps(summary, indent=2, cls=TensorJSONEncoder)}")
             
     def save_metrics(self) -> None:
         """Save all metrics to a JSON file."""
@@ -199,7 +218,7 @@ class TrainingLogger:
         metrics_file = os.path.join(self.log_dir, f"metrics_{current_time}.json")
         
         with open(metrics_file, 'w') as f:
-            json.dump(self.metrics, f, indent=2)
+            json.dump(self.metrics, f, indent=2, cls=TensorJSONEncoder)
             
         self.info(f"Saved metrics to {metrics_file}")
 
@@ -264,6 +283,10 @@ class EarlyStopping:
             return False
             
         current = metrics[self.monitor]
+        
+        # Convert tensor to float if needed
+        if isinstance(current, torch.Tensor):
+            current = current.item()
         
         if self.mode == "min":
             # Check if current value is better (lower) than best value
@@ -380,6 +403,10 @@ class Checkpointing:
         if self.save_best_only and self.monitor in metrics:
             current = metrics[self.monitor]
             
+            # Convert tensor to float if needed
+            if isinstance(current, torch.Tensor):
+                current = current.item()
+            
             # Determine if current model is the best
             is_best = False
             if self.mode == "min":
@@ -405,11 +432,20 @@ class Checkpointing:
         # Save optimizer and scheduler states if provided
         training_state = {}
         if optimizer is not None:
-            training_state["optimizer_state_dict"] = optimizer.state_dict()
+            # We need to handle tensors in the optimizer state
+            # Just save the state_dict path, we'll save the actual state separately
+            optimizer_path = os.path.join(checkpoint_path, "optimizer.pt")
+            torch.save(optimizer.state_dict(), optimizer_path)
+            training_state["optimizer_state_path"] = "optimizer.pt"
+            
         if scheduler is not None:
-            training_state["scheduler_state_dict"] = scheduler.state_dict()
+            # Same approach for scheduler
+            scheduler_path = os.path.join(checkpoint_path, "scheduler.pt")
+            torch.save(scheduler.state_dict(), scheduler_path)
+            training_state["scheduler_state_path"] = "scheduler.pt"
             
         # Save epoch and metrics
+        # Use TensorJSONEncoder to handle tensors in metrics
         checkpoint_info = {
             "epoch": epoch,
             "metrics": metrics,
@@ -417,7 +453,7 @@ class Checkpointing:
         }
         
         with open(os.path.join(checkpoint_path, "checkpoint_info.json"), "w") as f:
-            json.dump(checkpoint_info, f, indent=2)
+            json.dump(checkpoint_info, f, indent=2, cls=TensorJSONEncoder)
             
         if self.verbose:
             self.logger.info(f"Saved checkpoint to {checkpoint_path}")
@@ -481,12 +517,24 @@ class Checkpointing:
             with open(checkpoint_info_path, "r") as f:
                 checkpoint_info = json.load(f)
                 
+            # Load optimizer and scheduler states if they exist
+            training_state = checkpoint_info["training_state"]
+            if "optimizer_state_path" in training_state:
+                optimizer_path = os.path.join(checkpoint_path, training_state["optimizer_state_path"])
+                if os.path.exists(optimizer_path):
+                    training_state["optimizer_state_dict"] = torch.load(optimizer_path, map_location=device)
+                    
+            if "scheduler_state_path" in training_state:
+                scheduler_path = os.path.join(checkpoint_path, training_state["scheduler_state_path"])
+                if os.path.exists(scheduler_path):
+                    training_state["scheduler_state_dict"] = torch.load(scheduler_path, map_location=device)
+                
             return {
                 "model": model,
                 "tokenizer": tokenizer,
                 "epoch": checkpoint_info["epoch"],
                 "metrics": checkpoint_info["metrics"],
-                "training_state": checkpoint_info["training_state"]
+                "training_state": training_state
             }
         except Exception as e:
             self.logger.error(f"Error loading checkpoint from {checkpoint_path}: {e}")

@@ -1,0 +1,70 @@
+name: Dependency Update Test
+
+on:
+  pull_request:
+    paths:
+      - 'requirements.txt'
+  push:
+    branches:
+      - main
+    paths:
+      - 'requirements.txt'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # Install additional dev dependencies for testing if they exist
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
+      - name: Check imports and code quality
+        run: |
+          # Run the update_imports script to ensure all imports are valid
+          python update_imports.py
+      
+      - name: Run tests
+        run: |
+          # Run the test suite
+          python -m unittest discover tests/code
+
+      - name: Run mini training test
+        run: |
+          # Run a minimal training job to verify core functionality
+          python tests/code/ci/test_mini_training.py
+
+      - name: Test import functionality
+        run: |
+          # Verify that the package can be imported correctly
+          python -c "import src; print('Import successful')"
+
+      - name: Cache test data
+        uses: actions/cache@v3
+        with:
+          path: |
+            tests/data
+            ~/.cache/pip
+          key: ${{ runner.os }}-test-data-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-test-data-
+
+      - name: Report Results
+        if: always()
+        run: |
+          echo "Tests completed for Python ${{ matrix.python-version }}"
+          # Add any additional reporting or notifications here

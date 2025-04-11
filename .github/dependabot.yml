@@ -1,0 +1,32 @@
+version: 2
+updates:
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "automated-pr"
+    commit-message:
+      prefix: "deps:"
+      include: "scope"
+    reviewers:
+      - "skitsanos"  # Replace with actual maintainer username
+    assignees:
+      - "skitsanos"  # Replace with actual maintainer username
+    groups:
+      torch-dependencies:
+        patterns:
+          - "torch*"
+      transformers-dependencies:
+        patterns:
+          - "transformers*"
+      dev-dependencies:
+        dependency-type: "development"
+    ignore:
+      # Skip major version upgrades that might introduce breaking changes
+      - dependency-name: "torch"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "transformers"
+        update-types: ["version-update:semver-major"]
