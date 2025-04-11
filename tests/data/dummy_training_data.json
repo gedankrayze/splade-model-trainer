@@ -1,0 +1,26 @@
+[
+  {
+    "query": "What is SPLADE used for?",
+    "positive_document": "SPLADE (SParse Lexical AnD Expansion) is a state-of-the-art approach to information retrieval that combines the efficiency of sparse retrievers with the effectiveness of neural language models. The SPLADE model uses a sparse representation that captures lexical matching while also handling term expansion, making it powerful for search applications.",
+    "negative_documents": [
+      "Dense retrieval models encode both queries and documents in a continuous vector space, enabling semantic matching beyond exact keyword overlap. These models can capture complex relationships between concepts, even when different terminology is used.",
+      "BM25 is a traditional keyword-based ranking function that has been the standard in information retrieval for decades. It balances term frequency with inverse document frequency to score documents."
+    ]
+  },
+  {
+    "query": "How does SPLADE expansion work?",
+    "positive_document": "The key insight of SPLADE is that it learns to perform lexical expansion - the model doesn't just activate the exact words present in the text, but also semantically related terms. This expansion is learned during training and allows for more robust matching between queries and documents.",
+    "negative_documents": [
+      "In traditional information retrieval, query expansion is often performed explicitly using techniques like synonym dictionaries or relevance feedback mechanisms.",
+      "Dense retrieval models perform implicit expansion by mapping semantically similar terms to nearby locations in the embedding space."
+    ]
+  },
+  {
+    "query": "What are the advantages of SPLADE over dense retrieval?",
+    "positive_document": "SPLADE offers several advantages over dense retrieval models: efficiency due to sparse representations that can leverage inverted index data structures, better explainability as each dimension corresponds to a word, and compatibility with existing information retrieval infrastructure like Elasticsearch and Lucene.",
+    "negative_documents": [
+      "Dense retrieval models can be more computationally intensive during inference and may require special infrastructure for approximate nearest neighbor search.",
+      "Traditional keyword-based methods like BM25 are highly efficient but often lack the semantic understanding capabilities of neural models."
+    ]
+  }
+]
