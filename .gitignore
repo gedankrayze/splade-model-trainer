@@ -1,4 +1,6 @@
 .idea/
 .venv/
+temp/
+fine_tune*
 *.zip
 Taskfile.yaml
