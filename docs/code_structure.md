@@ -14,7 +14,8 @@ splade-model-trainer/
 │   ├── train_embeddings_lowmem.py # Low-memory version for dense model training
 │   ├── evaluate_splade.py   # SPLADE model evaluation
 │   ├── evaluate_embeddings.py # Dense embeddings evaluation
-│   └── generate_training_data.py # Training data generation utilities
+│   ├── generate_training_data.py # Training data generation utilities
+│   └── generator/               # Modular training data generation components
 │
 ├── tests/                   # Tests
 │   ├── code/                # Test code
@@ -69,6 +70,15 @@ splade-model-trainer/
 
 - **generate_training_data.py**: Training data generation:
   - Utilities for creating training data from document collections
+  - Supports multilingual data generation
+  - Modular architecture with components in the generator/ package
+
+- **generator/**: Modular components for training data generation:
+  - `api.py`: LLM API interaction for generating training examples
+  - `processors.py`: Document processing and chunking
+  - `templates.py`: System prompts and language templates
+  - `utils.py`: Utility functions for data processing
+  - `models.py`: Data models and type definitions
 
 ### Tests (`tests/code/`)
 

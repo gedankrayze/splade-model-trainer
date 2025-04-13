@@ -59,8 +59,8 @@ Using language-specific generation provides several benefits:
 ## Technical Details
 
 The language support is implemented in the modular training data generator at:
-- `src/generate_training_data_modular.py`
-- `src/generator/templates.py` (language templates)
+- `src/generate_training_data.py` (main entry point)
+- `src/generator/templates.py` (language templates and detection)
 
 To add support for a new language:
 1. Add templates for the language in `templates.py`
@@ -70,6 +70,6 @@ To add support for a new language:
 ## Troubleshooting
 
 If you encounter mixed language training data:
-1. Make sure you're using the modular generator (`generate_training_data_modular.py`)
-2. Verify the language parameter is set correctly
-3. Try a model with better multilingual capabilities (like qwen2.5)
+1. Verify the language parameter is set correctly (use `--language` or `--detect-language`)
+2. Try a model with better multilingual capabilities (like qwen2.5 or gpt-4o)
+3. Check that your documents are consistently in one language
