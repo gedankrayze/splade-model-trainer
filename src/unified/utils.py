@@ -141,25 +141,40 @@ class TrainingLogger:
         # Create logger
         self.logger = logging.getLogger(name)
         
-        # Ensure we don't add handlers twice
-        if not self.logger.handlers:
+        # Track existing handlers to avoid adding duplicates
+        existing_handlers = {}
+        for handler in self.logger.handlers:
+            # Identify handler by its formatter and class name
+            if hasattr(handler, 'formatter'):
+                handler_key = (handler.formatter._fmt, handler.__class__.__name__)
+                existing_handlers[handler_key] = True
+        
+        # Only reset the handlers if this specific logger doesn't seem to be initialized yet
+        if not existing_handlers:
+            # Set the root logger level
             self.logger.setLevel(logging.INFO)
             
-            # Create console handler
-            console_handler = logging.StreamHandler()
-            console_handler.setLevel(logging.INFO)
+            # Create console handler if not already present
             console_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            console_handler.setFormatter(console_formatter)
-            self.logger.addHandler(console_handler)
+            console_handler_key = (console_formatter._fmt, 'StreamHandler')
             
-            # Create file handler
+            if console_handler_key not in existing_handlers:
+                console_handler = logging.StreamHandler()
+                console_handler.setLevel(logging.INFO)
+                console_handler.setFormatter(console_formatter)
+                self.logger.addHandler(console_handler)
+            
+            # Create file handler if not already present
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
             log_file = os.path.join(log_dir, f"training_{current_time}.log")
-            file_handler = logging.FileHandler(log_file)
-            file_handler.setLevel(logging.DEBUG)
             file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-            file_handler.setFormatter(file_formatter)
-            self.logger.addHandler(file_handler)
+            file_handler_key = (file_formatter._fmt, 'FileHandler')
+            
+            if file_handler_key not in existing_handlers:
+                file_handler = logging.FileHandler(log_file)
+                file_handler.setLevel(logging.DEBUG)
+                file_handler.setFormatter(file_formatter)
+                self.logger.addHandler(file_handler)
         
         # Dictionary to store training metrics
         self.metrics = {

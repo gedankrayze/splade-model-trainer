@@ -175,13 +175,23 @@ def main() -> None:
     # Parse command-line arguments
     args = parse_arguments()
     
-    # Set up logging with appropriate level
+    # Set up CLI-specific logger without affecting root logger
     log_level = logging.DEBUG if args.verbose else logging.INFO
-    logging.basicConfig(
-        level=log_level,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    )
+    
+    # Create a CLI-specific logger
     logger = logging.getLogger("splade_trainer_cli")
+    logger.setLevel(log_level)
+    
+    # Only add handler if none exist
+    if not logger.handlers:
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(log_level)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        console_handler.setFormatter(formatter)
+        logger.addHandler(console_handler)
+        
+    # Prevent propagation to root logger to avoid duplicate logs
+    logger.propagate = False
     
     # Check if validation file is provided when using features that require it
     if not args.val_file:
