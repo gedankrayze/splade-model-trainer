@@ -38,7 +38,7 @@ tasks:
         outdir="training_data"
         mkdir -p "$outdir"
         
-        python -m src.generate_training_data_modular \
+        python -m src.generate_training_data \
           --input-dir {{.folder}} \
           --output-file "$outdir/training_data_{{.lang}}.json" \
           --api-base http://localhost:11434/v1 \
@@ -61,7 +61,7 @@ tasks:
         outdir="training_data"
         mkdir -p "$outdir"
         
-        python -m src.generate_training_data_modular \
+        python -m src.generate_training_data \
           --input-dir {{.folder}} \
           --output-file "$outdir/training_data_auto.json" \
           --api-base http://localhost:11434/v1 \

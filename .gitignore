@@ -3,5 +3,6 @@
 temp/
 fine_tune*
 logs/
+.DS_Store
 *.zip
 .env
