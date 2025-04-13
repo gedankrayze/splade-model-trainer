@@ -54,10 +54,11 @@ from typing import Dict, Any, Optional, Union, List
 
 import numpy as np
 import torch
-from torch.cuda.amp import autocast, GradScaler
+from torch.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from transformers import AutoTokenizer, AutoModelForMaskedLM, AdamW, get_scheduler
+from transformers import AutoTokenizer, AutoModelForMaskedLM, get_scheduler
+from torch.optim import AdamW
 
 from src.unified.dataset import SpladeDataset
 from src.unified.utils import (
@@ -682,7 +683,7 @@ class UnifiedSpladeTrainer:
         """
         try:
             # Context manager for mixed precision
-            with autocast(enabled=mixed_precision):
+            with autocast(device_type=self.device.type, enabled=mixed_precision):
                 # Forward pass for query
                 query_outputs = self.model(
                     input_ids=batch["query_input_ids"],
@@ -782,8 +783,9 @@ class UnifiedSpladeTrainer:
                 # Forward pass and compute loss based on precision mode
                 if self.use_mixed_precision:
                     # Mixed precision forward pass
-                    outputs = self.forward_pass(batch, mixed_precision=True)
-                    loss = outputs["loss"]
+                    with autocast(device_type=self.device.type):
+                        outputs = self.forward_pass(batch, mixed_precision=True)
+                        loss = outputs["loss"]
                     
                     # Backward pass with gradient scaling to prevent underflow
                     self.optimizer.zero_grad()
