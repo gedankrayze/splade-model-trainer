@@ -1,6 +1,7 @@
 .idea/
 .venv/
 temp/
+development_notes/
 fine_tune*
 logs/
 .DS_Store
