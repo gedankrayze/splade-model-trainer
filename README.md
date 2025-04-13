@@ -9,6 +9,8 @@ SPLADE is a state-of-the-art approach to information retrieval that combines the
 the effectiveness of neural language models. The SPLADE model uses a sparse representation that captures lexical
 matching while also handling term expansion, making it powerful for search applications.
 
+While our primary focus is on SPLADE models, we also provide complementary support for training dense embedding models and hybrid approaches that can be used alongside SPLADE for certain use cases.
+
 ## Project Structure
 
 - `src/` - Source code for the SPLADE model trainer
@@ -49,19 +51,34 @@ See [docs/domain_distiller.md](docs/domain_distiller.md) for detailed documentat
 pip install -r requirements.txt
 ```
 
-### Training a Model with the Unified Trainer (Recommended)
+### Training a Model with the Unified Trainer
 
 ```bash
 python train_splade_unified.py --train-file training_data.json --output-dir ./fine_tuned_splade --mixed-precision
 ```
 
-This unified trainer combines all advanced features in a single, cohesive interface. See [docs/unified_trainer.md](docs/unified_trainer.md) for details.
+The unified trainer provides a comprehensive solution that uses tools from the `src/unified` folder, combining all advanced features in a single, cohesive interface. It offers:
 
-### Alternative Training Methods
+- Mixed precision training for better performance
+- Early stopping to prevent overfitting
+- Checkpointing for saving/resuming training
+- Training recovery options
+- Comprehensive logging and metrics tracking
+- Support for multiple hardware platforms (CUDA, MPS, CPU)
+
+See [docs/unified_trainer.md](docs/unified_trainer.md) for detailed documentation and advanced options.
+
+### Using Task Runner (Recommended)
+
+We provide a Taskfile.yaml that simplifies common operations and automatically handles virtual environment activation:
 
 ```bash
-python -m src.train_splade_mixed_precision --train-file training_data.json --output-dir ./fine_tuned_splade --mixed-precision
+# Install Task runner: https://taskfile.dev/installation/
+# Then train a model with:
+task train train_file=training_data.json output_dir=./fine_tuned_splade
 ```
+
+No need to manually activate the virtual environment - the Task runner takes care of it for you!
 
 ### Interactive Search
 

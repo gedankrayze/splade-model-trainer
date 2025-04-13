@@ -10,6 +10,8 @@ SPLADE is a state-of-the-art approach to information retrieval that combines the
 the effectiveness of neural language models. The SPLADE model uses a sparse representation that captures lexical
 matching while also handling term expansion, making it powerful for search applications.
 
+While our primary focus is on SPLADE models, we also provide complementary support for training dense embedding models and hybrid approaches that can be used alongside SPLADE for certain use cases.
+
 This toolkit provides:
 
 - Training infrastructure for fine-tuning SPLADE models on domain-specific data
