@@ -583,26 +583,24 @@ def test_ollama_models():
             print(f"First 5 values: {embedding[:5]}")
         except Exception as e:
             print(f"Error with model {model}: {e}")
+```
 
+### Ollama Setup Guide
 
-# Installation and setup instructions for Ollama
-def ollama_setup_guide():
-    """Instructions for setting up Ollama."""
-    print("""
-# Ollama Setup Guide
+To use Ollama for local embedding generation:
 
 1. Install Ollama:
-   - Mac/Linux: curl -fsSL https://ollama.com/install.sh | sh
+   - Mac/Linux: `curl -fsSL https://ollama.com/install.sh | sh`
    - Windows: Download from https://ollama.com/download
 
 2. Pull embedding models:
-   ```
+   ```bash
    ollama pull nomic-embed-text
    ollama pull all-minilm
    ```
 
 3. Test the API:
-   ```
+   ```bash
    curl -X POST http://localhost:11434/v1/embeddings \
      -H "Content-Type: application/json" \
      -d '{
@@ -610,10 +608,6 @@ def ollama_setup_guide():
        "input": "Hello world"
      }'
    ```
-
-4. Use in Python code as shown in examples.
-""")
-```
 
 ## 4. Scaling for Production Use
 
