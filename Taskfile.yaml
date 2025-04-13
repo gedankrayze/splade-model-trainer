@@ -4,6 +4,11 @@ version: 3
 # Look for .env files in current directory, {{.ENV}}/.env, and {{.HOME}}/.env
 dotenv: ['.env', '{{.ENV}}/.env', '{{.HOME}}/.env']
 
+vars:
+  # VENV activation commands for different platforms
+  VENV_ACTIVATE_UNIX: source .venv/bin/activate
+  VENV_ACTIVATE_WIN: .venv\Scripts\activate
+
 tasks:
   # Creates a virtual environment for project dependencies isolation
   # Usage: task venv
@@ -20,14 +25,13 @@ tasks:
     cmds:
       # For macOS and Linux
       - cmd: |
-          source .venv/bin/activate
+          {{.VENV_ACTIVATE_UNIX}}
           pip install --upgrade pip
           pip install -U -r requirements.txt
         platforms: ["linux", "darwin"]
       # For Windows
       - cmd: |
-          python3 -m venv .venv
-          .venv\Scripts\activate
+          {{.VENV_ACTIVATE_WIN}}
           python -m pip install --upgrade pip
           pip install -U -r requirements.txt
         platforms: ["windows"]
@@ -45,6 +49,7 @@ tasks:
       val_ratio: '{{default "0.2" .val_ratio}}'
     cmds:
       - |
+        {{if eq .OS "windows"}}{{.VENV_ACTIVATE_WIN}}{{else}}{{.VENV_ACTIVATE_UNIX}}{{end}}
         python -m src.generate_training_data \
         --validation-file {{.val_file}} \
         --val-ratio {{.val_ratio}} \
@@ -52,8 +57,8 @@ tasks:
         --output-file {{.output_file}}
 
   # Trains a SPLADE model using the unified trainer (recommended)
-  # Usage: task train-unified train_file=data.json output_dir=./models val_file=val.json model_name=model/name
-  train-unified:
+  # Usage: task train train_file=data.json output_dir=./models val_file=val.json model_name=model/name
+  train:
     desc: Train SPLADE model using the unified trainer with all advanced features
     requires:
       vars:
@@ -75,6 +80,8 @@ tasks:
       - |
         mkdir -p {{.output_dir}}
         
+        {{if eq .OS "windows"}}{{.VENV_ACTIVATE_WIN}}{{else}}{{.VENV_ACTIVATE_UNIX}}{{end}}
+        
         huggingface-cli login --token={{.HF_TOKEN}}
         
         python train_splade_unified.py \
@@ -90,10 +97,29 @@ tasks:
         {{.early_stopping}} \
         {{.save_best_only}}
 
+  # Alias for train task (for backward compatibility)
+  train-unified:
+    desc: Alias for 'train' task (using the unified trainer)
+    cmds:
+      - task: train
+        vars:
+          train_file: '{{.train_file}}'
+          output_dir: '{{.output_dir}}'
+          val_file: '{{.val_file}}'
+          model_name: '{{.model_name}}'
+          learning_rate: '{{.learning_rate}}'
+          batch_size: '{{.batch_size}}'
+          epochs: '{{.epochs}}'
+          device: '{{.device}}'
+          mixed_precision: '{{.mixed_precision}}'
+          early_stopping: '{{.early_stopping}}'
+          save_best_only: '{{.save_best_only}}'
+
+  # DEPRECATED - Use 'train' instead
   # Trains a SPLADE model using the original implementation
   # Usage: task train-splade train_file=data.json output_dir=./models val_file=val.json model_name=model/name
   train-splade:
-    desc: Train SPLADE model using the original trainer implementation
+    desc: DEPRECATED - Train SPLADE model using the original trainer implementation (use 'train' instead)
     requires:
       vars:
         - train_file
@@ -109,7 +135,11 @@ tasks:
       TOKENIZERS_PARALLELISM: false
     cmds:
       - |
+        echo "WARNING: This task is deprecated. Please use 'task train' which uses the unified trainer instead."
+      - |
         mkdir -p {{.output_dir}}
+        
+        {{if eq .OS "windows"}}{{.VENV_ACTIVATE_WIN}}{{else}}{{.VENV_ACTIVATE_UNIX}}{{end}}
         
         huggingface-cli login --token={{.HF_TOKEN}}
         
@@ -123,10 +153,11 @@ tasks:
         --batch-size {{.batch_size}} \
         --epochs {{.epochs}}
 
+  # DEPRECATED - Use 'train' instead
   # Trains a SPLADE model with mixed precision 
   # Usage: task train-splade-mp train_file=data.json output_dir=./models val_file=val.json model_name=model/name
   train-splade-mp:
-    desc: Train SPLADE model with mixed precision for better performance
+    desc: DEPRECATED - Train SPLADE model with mixed precision (use 'train' instead)
     requires:
       vars:
         - train_file
@@ -142,7 +173,11 @@ tasks:
       TOKENIZERS_PARALLELISM: false
     cmds:
       - |
+        echo "WARNING: This task is deprecated. Please use 'task train' which uses the unified trainer with mixed precision instead."
+      - |
         mkdir -p {{.output_dir}}
+        
+        {{if eq .OS "windows"}}{{.VENV_ACTIVATE_WIN}}{{else}}{{.VENV_ACTIVATE_UNIX}}{{end}}
         
         huggingface-cli login --token={{.HF_TOKEN}}
         
@@ -172,6 +207,8 @@ tasks:
       - cmd: |
           mkdir -p {{.output_dir}}
           
+          {{if eq .OS "windows"}}{{.VENV_ACTIVATE_WIN}}{{else}}{{.VENV_ACTIVATE_UNIX}}{{end}}
+          
           python -m src.train_embeddings \
           --train-file {{.train_file}} \
           --output-dir {{.output_dir}} \
@@ -194,6 +231,8 @@ tasks:
       - cmd: |
           mkdir -p {{.output_dir}}
           
+          {{if eq .OS "windows"}}{{.VENV_ACTIVATE_WIN}}{{else}}{{.VENV_ACTIVATE_UNIX}}{{end}}
+          
           python -m src.train_embeddings_lowmem \
           --train-file {{.train_file}} \
           --output-dir {{.output_dir}} \
@@ -211,6 +250,8 @@ tasks:
         - test_file
     cmds:
       - cmd: |
+          {{if eq .OS "windows"}}{{.VENV_ACTIVATE_WIN}}{{else}}{{.VENV_ACTIVATE_UNIX}}{{end}}
+          
           python -m src.evaluate_splade \
           --model-dir {{.model_dir}} \
           --test-file {{.test_file}}
@@ -225,6 +266,8 @@ tasks:
         - docs_file
     cmds:
       - cmd: |
+          {{if eq .OS "windows"}}{{.VENV_ACTIVATE_WIN}}{{else}}{{.VENV_ACTIVATE_UNIX}}{{end}}
+          
           python -m tests.code.test_queries \
           --model-dir {{.model_dir}} \
           --docs-file {{.docs_file}}
@@ -235,6 +278,8 @@ tasks:
     desc: Run all test suites to verify code integrity
     cmds:
       - cmd: |
+          {{if eq .OS "windows"}}{{.VENV_ACTIVATE_WIN}}{{else}}{{.VENV_ACTIVATE_UNIX}}{{end}}
+          
           python -m tests.code.test_error_handling
           python -m tests.code.test_embedder
           python -m tests.code.test_load_model

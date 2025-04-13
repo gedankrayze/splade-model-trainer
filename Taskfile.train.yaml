@@ -1,0 +1,25 @@
+version: 3
+
+silent: true
+
+tasks:
+  prepare-with-ollama:
+    requires:
+      vars:
+        - folder
+        - model
+    cmds:
+      - |
+        source .venv/bin/activate
+        
+        outdir="training_data"
+        mkdir -p "$outdir"
+        
+        python -m src.generate_training_data \
+          --input-dir {{.folder}} \
+          --output-file "$outdir/training_data.json" \
+          --api-base http://localhost:11434/v1 \
+          --api-key ollama \
+          --model {{.model}} \
+          --contrastive \
+          --async
