@@ -989,7 +989,6 @@ The ideal configuration will depend on your specific domain and requirements. Fo
 
 - [OpenAI Embeddings API](https://platform.openai.com/docs/guides/embeddings)
 - [Ollama](https://ollama.com/)
-- [Nomic AI Embeddings](https://docs.nomic.ai/embedding_models.html)
 - [FAISS Documentation](https://github.com/facebookresearch/faiss/wiki)
 - [SPLADE Paper](https://arxiv.org/abs/2107.05720)
 - [Introduction to Hybrid Search](introduction_to_splade.md)
