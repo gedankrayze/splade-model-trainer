@@ -23,3 +23,71 @@ tasks:
           --model {{.model}} \
           --contrastive \
           --async
+
+  prepare-with-ollama-lang:
+    desc: Generate training data with specific language
+    requires:
+      vars:
+        - folder
+        - model
+        - lang
+    cmds:
+      - |
+        source .venv/bin/activate
+        
+        outdir="training_data"
+        mkdir -p "$outdir"
+        
+        python -m src.generate_training_data_modular \
+          --input-dir {{.folder}} \
+          --output-file "$outdir/training_data_{{.lang}}.json" \
+          --api-base http://localhost:11434/v1 \
+          --api-key ollama \
+          --model {{.model}} \
+          --language {{.lang}} \
+          --contrastive \
+          --async
+
+  prepare-with-ollama-auto:
+    desc: Generate training data with automatic language detection
+    requires:
+      vars:
+        - folder
+        - model
+    cmds:
+      - |
+        source .venv/bin/activate
+        
+        outdir="training_data"
+        mkdir -p "$outdir"
+        
+        python -m src.generate_training_data_modular \
+          --input-dir {{.folder}} \
+          --output-file "$outdir/training_data_auto.json" \
+          --api-base http://localhost:11434/v1 \
+          --api-key ollama \
+          --model {{.model}} \
+          --detect-language \
+          --contrastive \
+          --async
+
+  train-on-cpu:
+    env:
+      TOKENIZERS_PARALLELISM: false
+    requires:
+      vars:
+        - training_data
+        - model_name
+    cmds:
+      - |
+        source .venv/bin/activate
+        
+        python train_splade_optimized.py \
+        --model-name prithivida/Splade_PP_en_v2 \
+        --train-file {{.training_data}} \
+        --output-dir fine_tuned_splade/{{.model_name}} \
+        --device cpu \
+        --force-device \
+        --batch-size 4 \
+        --gradient-accumulation-steps 4 \
+        --memory-tracking
