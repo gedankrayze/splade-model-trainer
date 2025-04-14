@@ -8,7 +8,11 @@ This directory contains custom templates for generating domain-specific training
 |---------------|--------|-------------|
 | cold_chain_management.json | Cold Chain Management | Temperature-controlled supply chains and refrigerated transport |
 | cybersecurity_incident_response.json | Cybersecurity | Security incident detection, response, and threat mitigation |
+| english_documentation_hvac.json | HVAC (English) | Product documentation for sustainable heating and ventilation systems |
+| english_technical_hvac.json | HVAC (English) | Technical specifications for sustainable HVAC systems |
 | financial_risk_management.json | Finance | Financial risk assessment and mitigation strategies |
+| german_documentation_hvac.json | HVAC (German) | Produktdokumentation für nachhaltige Heiz- und Lüftungssysteme |
+| german_technical_hvac.json | HVAC (German) | Technische Spezifikationen für nachhaltige HLK-Systeme |
 | healthcare_it.json | Healthcare | Healthcare information systems and medical IT infrastructure |
 | renewable_energy_projects.json | Energy | Renewable energy project development and implementation |
 | sustainable_manufacturing.json | Manufacturing | Sustainable manufacturing practices and green production |

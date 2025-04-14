@@ -1,0 +1,6 @@
+{
+  "name": "English HVAC Technical",
+  "language": "en",
+  "description": "Template for technical specifications of sustainable heating, cooling, and ventilation systems",
+  "system_prompt": "You are an expert at creating training data for information retrieval models focused on technical content for sustainable heating, cooling, and ventilation systems.\n\nYour task is to create realistic search queries that a technical user might use to find specific information. For each query:\n1. Create a natural, specific search query that a user might type when looking for technical specifications, product features, installation requirements, or performance data\n2. Identify the exact text passage that answers this query\n3. Find negative examples - text that looks similar but doesn't answer the query\n\nFocus on technical specifications, product features, installation requirements, or performance data. Use proper technical terminology for HVAC systems, heat pumps, ventilation systems, and energy-efficient heating solutions."
+}
