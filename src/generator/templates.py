@@ -6,6 +6,7 @@ of training data for SPLADE model fine-tuning.
 """
 
 import logging
+import os
 from typing import Dict, Any, Optional
 
 # Configure logging
@@ -179,92 +180,74 @@ def get_language_name(language_code: str) -> str:
     return LANGUAGE_NAMES.get(language_code, language_code.upper())
 
 
-def get_template(domain_template: str, language: Optional[str] = None) -> Dict[str, Any]:
+def get_template(template_input: str, language: Optional[str] = None) -> Dict[str, Any]:
     """
-    Get the appropriate template for the given domain and language.
+    Get the appropriate template for the given input and language.
     
     Args:
-        domain_template: Domain template name
+        template_input: Either a built-in template name or path to a custom template file
         language: Optional language code
         
     Returns:
         A template dictionary with system prompt and metadata
     """
-    # Start with the default domain template
-    template = DOMAIN_TEMPLATES.get(domain_template, DOMAIN_TEMPLATES["generic"])
-    
-    # If language is specified and multilingual template is requested, use that
-    if domain_template == "multilingual" and language:
-        template = DOMAIN_TEMPLATES["multilingual"]
-        logger.info(f"Using multilingual template with language hint: {language}")
-        return template
-    
-    # If language is specified, check for language-specific template
-    if language:
-        # Check if language-specific templates exist
-        if language in LANGUAGE_TEMPLATES:
-            lang_templates = LANGUAGE_TEMPLATES[language]
-            # Check if domain-specific template exists for this language
-            if domain_template in lang_templates:
-                template = lang_templates[domain_template]
-                logger.info(f"Using {get_language_name(language)} template for {domain_template} domain")
-            # Fall back to generic template for this language
-            elif "generic" in lang_templates:
-                template = lang_templates["generic"]
-                logger.info(f"Using {get_language_name(language)} generic template")
+    # Check if the input is a file path
+    if os.path.exists(template_input) and template_input.endswith(('.json', '.jsonl')):
+        try:
+            logger.info(f"Loading custom template from file: {template_input}")
+            with open(template_input, 'r', encoding='utf-8') as f:
+                import json
+                custom_template = json.load(f)
+                # Validate the template has required fields
+                if 'system_prompt' not in custom_template:
+                    logger.warning(f"Custom template missing 'system_prompt' field, using generic template")
+                    template = DOMAIN_TEMPLATES["generic"]
+                else:
+                    # Set defaults for optional fields
+                    if 'name' not in custom_template:
+                        custom_template['name'] = "Custom Template"
+                    if 'language' not in custom_template:
+                        custom_template['language'] = language if language else "en"
+                    if 'description' not in custom_template:
+                        custom_template['description'] = "Custom template loaded from file"
+                    
+                    template = custom_template
+                    logger.info(f"Successfully loaded custom template: {template.get('name')}")
+                    return template
+        except Exception as e:
+            logger.error(f"Error loading custom template: {e}")
+            logger.warning("Falling back to generic template")
+            template = DOMAIN_TEMPLATES["generic"]
+    else:
+        # Treat as a built-in template name
+        domain_template = template_input
+        template = DOMAIN_TEMPLATES.get(domain_template, DOMAIN_TEMPLATES["generic"])
+        
+        # If language is specified and multilingual template is requested, use that
+        if domain_template == "multilingual" and language:
+            template = DOMAIN_TEMPLATES["multilingual"]
+            logger.info(f"Using multilingual template with language hint: {language}")
+            return template
+        
+        # If language is specified, check for language-specific template
+        if language:
+            # Check if language-specific templates exist
+            if language in LANGUAGE_TEMPLATES:
+                lang_templates = LANGUAGE_TEMPLATES[language]
+                # Check if domain-specific template exists for this language
+                if domain_template in lang_templates:
+                    template = lang_templates[domain_template]
+                    logger.info(f"Using {get_language_name(language)} template for {domain_template} domain")
+                # Fall back to generic template for this language
+                elif "generic" in lang_templates:
+                    template = lang_templates["generic"]
+                    logger.info(f"Using {get_language_name(language)} generic template")
+                else:
+                    logger.warning(f"No templates found for {language}, using default template with language instructions")
             else:
                 logger.warning(f"No templates found for {language}, using default template with language instructions")
-        else:
-            logger.warning(f"No templates found for {language}, using default template with language instructions")
     
     return template
 
 
-def detect_document_language(text: str) -> Optional[str]:
-    """
-    Detect the language of a document based on common words/markers.
-    
-    Args:
-        text: Text content to analyze
-        
-    Returns:
-        Language code (e.g., 'en', 'de') or None if detection failed
-    """
-    if not text or not isinstance(text, str):
-        return None
-    
-    # Simple language detection based on common words
-    # Take a sample of the text (first 100 words or so)
-    words = text.lower().split()[:100]
-    sample = " ".join(words)
-    
-    # Define language markers (common words) for various languages
-    language_markers = {
-        "en": ["the", "and", "is", "for", "in", "with", "on", "to", "at", "of", "a", "an", "this", "that"],
-        "de": ["der", "die", "das", "und", "ist", "für", "in", "mit", "auf", "zu", "bei", "von", "ein", "eine"],
-        "es": ["el", "la", "los", "las", "y", "es", "para", "en", "con", "por", "a", "de", "un", "una"],
-        "fr": ["le", "la", "les", "et", "est", "pour", "dans", "avec", "sur", "à", "de", "un", "une"],
-        # Add more languages as needed
-    }
-    
-    # Count occurrences of marker words for each language
-    lang_scores = {}
-    for lang, markers in language_markers.items():
-        score = sum(1 for word in words if word in markers)
-        # Normalize by the number of words to get a percentage
-        normalized_score = score / len(words) if words else 0
-        lang_scores[lang] = normalized_score
-    
-    # Determine best language
-    if not lang_scores:
-        return None
-    
-    best_lang = max(lang_scores.items(), key=lambda x: x[1])
-    threshold = 0.05  # At least 5% of words should be language markers
-    
-    if best_lang[1] >= threshold:
-        logger.info(f"Detected language: {best_lang[0]} (score: {best_lang[1]:.2f})")
-        return best_lang[0]
-    
-    logger.info("Could not confidently detect language")
-    return None
+# Language detection functionality has been removed in favor of explicit language selection

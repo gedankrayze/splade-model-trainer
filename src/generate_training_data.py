@@ -33,7 +33,7 @@ logger = logging.getLogger("generate_training_data")
 from src.generator.processors import process_directory
 from src.generator.api import process_chunks_async, process_chunks
 from src.generator.utils import split_train_val_test, save_to_file
-from src.generator.templates import get_template, detect_document_language
+from src.generator.templates import get_template
 
 
 def parse_arguments():
@@ -91,15 +91,12 @@ def parse_arguments():
     parser.add_argument('--api-base', default="https://api.openai.com/v1",
                         help='Base URL for OpenAI-compatible API (default: https://api.openai.com/v1)')
 
-    parser.add_argument('--domain-template', choices=['generic', 'technical', 'legal', 'medical', 'finance', 'multilingual'], 
+    parser.add_argument('--template', 
                         default='generic',
-                        help='Domain template to use (default: generic)')
+                        help='Template to use - can be a built-in template name (generic, technical, legal, medical, finance, multilingual) or a path to a custom template file')
 
     parser.add_argument('--language', 
                         help='Language for generated examples (e.g., "en", "de"). When specified, examples will be generated in this language')
-
-    parser.add_argument('--detect-language', action='store_true',
-                        help='Automatically detect document language and generate examples in same language')
 
     parser.add_argument('--extensions', nargs='+', default=None,
                         help='File extensions to include (default: md, txt, facts, csv, json, html, htm)')
@@ -147,23 +144,8 @@ async def main_async(args):
         logger.error("No valid document chunks found. Check input directory.")
         return
 
-    # Handle language detection if requested
+    # Handle language
     language = args.language
-    if args.detect_language:
-        logger.info("Attempting to auto-detect document language")
-        # Use the 'multilingual' template which has auto-detection instructions
-        args.domain_template = "multilingual"
-        
-        # Sample a few chunks to detect language
-        sample_chunks = chunks[:min(5, len(chunks))]
-        sample_text = "\n\n".join(chunk["content"] for chunk in sample_chunks)
-        detected_language = detect_document_language(sample_text)
-        
-        if detected_language:
-            logger.info(f"Detected document language: {detected_language}")
-            language = detected_language
-        else:
-            logger.warning("Could not reliably detect document language, using multilingual template")
 
     # Generate training examples
     logger.info(f"Generating training examples using {args.model} with {args.workers} workers (async mode)")
@@ -178,7 +160,7 @@ async def main_async(args):
         max_tokens=2000,
         retry_count=3,
         retry_delay=1.0,
-        domain_template=args.domain_template,
+        domain_template=args.template,
         language=language,
         contrastive=args.contrastive,
         num_workers=args.workers,
@@ -263,23 +245,8 @@ def main():
         logger.error("No valid document chunks found. Check input directory.")
         return
 
-    # Handle language detection if requested
+    # Handle language
     language = args.language
-    if args.detect_language:
-        logger.info("Attempting to auto-detect document language")
-        # Use the 'multilingual' template which has auto-detection instructions
-        args.domain_template = "multilingual"
-        
-        # Sample a few chunks to detect language
-        sample_chunks = chunks[:min(5, len(chunks))]
-        sample_text = "\n\n".join(chunk["content"] for chunk in sample_chunks)
-        detected_language = detect_document_language(sample_text)
-        
-        if detected_language:
-            logger.info(f"Detected document language: {detected_language}")
-            language = detected_language
-        else:
-            logger.warning("Could not reliably detect document language, using multilingual template")
 
     # Generate training examples
     logger.info(f"Generating training examples using {args.model} (synchronous mode)")
@@ -291,7 +258,7 @@ def main():
         args.negative_count,
         args.batch_size,
         args.temperature,
-        args.domain_template,
+        args.template,
         language=language,
         seed=args.seed
     )

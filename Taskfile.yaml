@@ -9,8 +9,15 @@ vars:
   VENV_ACTIVATE_UNIX: source .venv/bin/activate
   VENV_ACTIVATE_WIN: .venv\Scripts\activate
 
+includes:
+  trainer: 'Taskfile.train.yaml'
+
 tasks:
   # Creates a virtual environment for project dependencies isolation
+  #
+  # This task creates a new Python virtual environment in the .venv directory
+  # to isolate project dependencies from the system Python installation.
+  #
   # Usage: task venv
   venv:
     desc: Create a new Python virtual environment in .venv directory
@@ -19,6 +26,11 @@ tasks:
           python3 -m venv .venv
 
   # Installs all required dependencies in the virtual environment
+  #
+  # This task installs or updates all project dependencies in the virtual environment.
+  # It first upgrades pip to the latest version, then installs all packages listed in
+  # the requirements.txt file. Platform-specific commands are used for Windows vs Unix.
+  #
   # Usage: task install
   install:
     desc: Install all required dependencies in the virtual environment
@@ -37,7 +49,13 @@ tasks:
         platforms: ["windows"]
 
   # Generates training data from input documents 
-  # Usage: task generate input_dir=path/to/docs output_file=training.json val_file=validation.json val_ratio=0.2
+  #
+  # This task processes documents from the input directory and generates
+  # training data for SPLADE model fine-tuning. It creates both training and
+  # validation files with customizable split ratios. Supports custom templates
+  # and language-specific generation.
+  #
+  # Usage: task generate input_dir=path/to/docs output_file=training.json val_file=validation.json val_ratio=0.2 template=legal language=de
   generate:
     desc: Generate training data from input documents with train/validation split
     requires:
@@ -47,6 +65,8 @@ tasks:
     vars:
       val_file: '{{default "validation_data.json" .val_file}}'
       val_ratio: '{{default "0.2" .val_ratio}}'
+      template: '{{default "generic" .template}}'
+      language: '{{default "" .language}}'
     cmds:
       - |
         {{if eq .OS "windows"}}{{.VENV_ACTIVATE_WIN}}{{else}}{{.VENV_ACTIVATE_UNIX}}{{end}}
@@ -54,10 +74,27 @@ tasks:
         --validation-file {{.val_file}} \
         --val-ratio {{.val_ratio}} \
         --input-dir {{.input_dir}} \
-        --output-file {{.output_file}}
+        --output-file {{.output_file}} \
+        --template {{.template}} \
+        {{if .language}}--language {{.language}}{{end}}
 
   # Trains a SPLADE model using the unified trainer (recommended)
+  #
+  # This task runs the unified SPLADE trainer with all advanced features.
+  # It supports mixed precision training, early stopping, checkpointing,
+  # and comprehensive metrics tracking. Creates output directory if it doesn't exist.
+  #
   # Usage: task train train_file=data.json output_dir=./models val_file=val.json model_name=model/name
+  #
+  # Parameters:
+  #   train_file: Path to training data file (required)
+  #   output_dir: Directory to save model (required)
+  #   val_file: Path to validation data file (optional) 
+  #   model_name: Base model name (default: "prithivida/Splade_PP_en_v2")
+  #   learning_rate: Learning rate (default: "5e-5")
+  #   batch_size: Batch size (default: "8")
+  #   epochs: Number of training epochs (default: "3")
+  #   device: Device to use (default: auto-detect)
   train:
     desc: Train SPLADE model using the unified trainer with all advanced features
     requires:

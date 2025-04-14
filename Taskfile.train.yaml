@@ -3,11 +3,26 @@ version: 3
 silent: true
 
 tasks:
+  # Generate training data using Ollama API
+  # 
+  # This task generates training data for SPLADE model training using the Ollama API.
+  # It processes documents from the specified folder and generates contrastive examples
+  # using the specified Ollama model.
+  #
+  # Usage: 
+  #   task train:prepare-with-ollama folder=./documents model=llama3 template=legal
+  #
+  # Parameters:
+  #   folder: Path to the documents directory (required)
+  #   model: Ollama model name to use (required)
+  #   template: Template name or file path (default: "generic")
   prepare-with-ollama:
     requires:
       vars:
         - folder
         - model
+    vars:
+      template: '{{default "generic" .template}}'
     cmds:
       - |
         source .venv/bin/activate
@@ -21,9 +36,23 @@ tasks:
           --api-base http://localhost:11434/v1 \
           --api-key ollama \
           --model {{.model}} \
+          --template {{.template}} \
           --contrastive \
           --async
 
+  # Generate language-specific training data using Ollama API
+  # 
+  # This task generates training data in a specific language using the Ollama API.
+  # It creates a dedicated folder for the model and saves the output with the language code.
+  #
+  # Usage: 
+  #   task train:prepare-with-ollama-lang folder=./documents model=llama3 lang=de template=legal
+  #
+  # Parameters:
+  #   folder: Path to the documents directory (required)
+  #   model: Ollama model name to use (required)
+  #   lang: Language code for the generated data (required, e.g., "en", "de", "fr")
+  #   template: Template name or file path (default: "generic")
   prepare-with-ollama-lang:
     desc: Generate training data with specific language
     requires:
@@ -31,46 +60,91 @@ tasks:
         - folder
         - model
         - lang
+    vars:
+      template: '{{default "generic" .template}}'
     cmds:
       - |
         source .venv/bin/activate
         
         outdir="training_data"
-        mkdir -p "$outdir"
+        mkdir -p "$outdir/{{.model}}"
         
         python -m src.generate_training_data \
           --input-dir {{.folder}} \
-          --output-file "$outdir/training_data_{{.lang}}.json" \
+          --output-file "$outdir/{{.model}}/training_data_{{.lang}}.json" \
+          --validation-file "$outdir/{{.model}}/training_data_{{.lang}}_validation.json" \
           --api-base http://localhost:11434/v1 \
           --api-key ollama \
           --model {{.model}} \
+          --template {{.template}} \
           --language {{.lang}} \
           --contrastive \
           --async
 
-  prepare-with-ollama-auto:
-    desc: Generate training data with automatic language detection
+  # Generate language-specific training data using OpenAI API
+  # 
+  # This task generates training data in a specific language using the OpenAI API.
+  # It creates language-specific output files and separates training and validation data.
+  #
+  # Usage: 
+  #   task train:prepare-with-openai-lang folder=./documents model=gpt-4o lang=es template=legal api_key=your_api_key
+  #
+  # Parameters:
+  #   folder: Path to the documents directory (required)
+  #   model: OpenAI model name to use (required, e.g., "gpt-4o", "gpt-3.5-turbo")
+  #   lang: Language code for the generated data (required, e.g., "en", "de", "fr")
+  #   template: Template name or file path (default: "generic")
+  #   api_key: OpenAI API key (default: from environment variable)
+  #   val_ratio: Validation set ratio (default: "0.2")
+  prepare-with-openai-lang:
+    desc: Generate language-specific training data using OpenAI API
     requires:
       vars:
         - folder
         - model
+        - lang
+    vars:
+      template: '{{default "generic" .template}}'
+      api_key: '{{default "" .api_key}}'
+      val_ratio: '{{default "0.2" .val_ratio}}'
     cmds:
       - |
         source .venv/bin/activate
         
         outdir="training_data"
-        mkdir -p "$outdir"
+        mkdir -p "$outdir/openai"
+        
+        # Set API key if provided, otherwise use environment variable
+        api_key_param=""
+        if [ -n "{{.api_key}}" ]; then
+          api_key_param="--api-key {{.api_key}}"
+        fi
         
         python -m src.generate_training_data \
           --input-dir {{.folder}} \
-          --output-file "$outdir/training_data_auto.json" \
-          --api-base http://localhost:11434/v1 \
-          --api-key ollama \
+          --output-file "$outdir/openai/training_data_{{.lang}}.json" \
+          --validation-file "$outdir/openai/training_data_{{.lang}}_validation.json" \
+          --val-ratio {{.val_ratio}} \
+          --api-base https://api.openai.com/v1 \
+          $api_key_param \
           --model {{.model}} \
-          --detect-language \
+          --template {{.template}} \
+          --language {{.lang}} \
           --contrastive \
-          --async
+          --async \
+          --workers 4
 
+  # Train SPLADE model on CPU
+  # 
+  # This task trains a SPLADE model on CPU using memory-optimized settings.
+  # It's designed for environments without GPU acceleration or for testing purposes.
+  #
+  # Usage: 
+  #   task train:train-on-cpu training_data=./training_data.json model_name=my_model
+  #
+  # Parameters:
+  #   training_data: Path to the training data file (required)
+  #   model_name: Name for the output model (required)
   train-on-cpu:
     env:
       TOKENIZERS_PARALLELISM: false
@@ -91,3 +165,12 @@ tasks:
         --batch-size 4 \
         --gradient-accumulation-steps 4 \
         --memory-tracking
+
+  mine:
+    cmds:
+      - |
+        task trainer:prepare-with-openai-lang \
+        lang="de" \
+        model="gpt-4o-mini" \
+        folder="/Users/skitsanos/FTP/Products/Wolf/iirds/data_context" \
+        template="temp/language_templates/german_documentation_template.txt"

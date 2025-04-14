@@ -43,6 +43,26 @@ python train_splade_unified.py --train-file ./distilled_data/legal_en_splade.jso
 
 See [docs/domain_distiller.md](docs/domain_distiller.md) for detailed documentation and [docs/contrastive_generation.md](docs/contrastive_generation.md) for information about contrastive pair generation.
 
+### Custom Templates
+
+The toolkit now supports custom templates for generating domain-specific training data:
+
+```bash
+# Using a built-in template
+python -m src.generate_training_data \
+  --input-dir ./documents \
+  --output-file training_data.json \
+  --template legal
+
+# Using a custom template file
+python -m src.generate_training_data \
+  --input-dir ./documents \
+  --output-file training_data.json \
+  --template ./templates/my_custom_template.json
+```
+
+See [docs/custom_templates.md](docs/custom_templates.md) for detailed documentation on creating and using custom templates.
+
 ## Quick Start
 
 ### Installation
@@ -68,17 +88,24 @@ The unified trainer provides a comprehensive solution that uses tools from the `
 
 See [docs/unified_trainer.md](docs/unified_trainer.md) for detailed documentation and advanced options.
 
-### Using Task Runner (Recommended)
+### Using Task Runner with Enhanced Documentation
 
-We provide a Taskfile.yaml that simplifies common operations and automatically handles virtual environment activation:
+We provide extensively documented Taskfiles that simplify common operations and automatically handle virtual environment activation:
 
 ```bash
 # Install Task runner: https://taskfile.dev/installation/
-# Then train a model with:
-task train train_file=training_data.json output_dir=./fine_tuned_splade
+
+# Generate training data with a custom template
+task generate input_dir=./documents output_file=training.json template=legal language=de
+
+# Train a model with the generated data
+task train train_file=training.json output_dir=./fine_tuned_splade
+
+# Generate language-specific data using OpenAI
+task train:prepare-with-openai-lang folder=./documents model=gpt-4o lang=es template=legal
 ```
 
-No need to manually activate the virtual environment - the Task runner takes care of it for you!
+Each task comes with detailed documentation and examples. Use `task -l` to list all available tasks.
 
 ### Interactive Search
 

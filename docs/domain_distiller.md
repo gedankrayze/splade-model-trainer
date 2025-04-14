@@ -235,34 +235,18 @@ python train_splade_unified.py \
 
 ## Extending Domain Distiller
 
-### Creating Custom Domain Templates
+## Creating Custom Domain Templates
 
-Create a new file in `src/domain_distiller/templates/`:
+You can now create and use custom template files directly with the Domain Distiller:
 
-```python
-# src/domain_distiller/templates/ecommerce.py
-
-TEMPLATE = {
-    "name": "E-commerce Domain",
-    "description": "E-commerce products, categories, and customer reviews",
-    "bootstrap_instructions": """Focus on key e-commerce concepts including:
-    - Product categories and attributes
-    - Customer reviews and sentiment
-    - Pricing and promotions
-    - ...
-    """,
-    "query_complexity": {
-        "simple": 0.4,
-        "intermediate": 0.5,
-        "complex": 0.1
-    },
-    "document_length": {
-        "short": 0.3,
-        "medium": 0.6,
-        "long": 0.1
-    }
-}
+```bash
+python -m src.domain_distiller.cli pipeline \
+  --template ./templates/my_custom_template.json \
+  --language en \
+  --queries 100
 ```
+
+See the [custom templates documentation](custom_templates.md) for details on creating and using custom templates.
 
 ### Adding Language Support
 
